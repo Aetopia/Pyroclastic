@@ -7,5 +7,5 @@ md "bin"
 rd /q /s "obj"
 md "obj"
 
-windres.exe -i "Resources\Application.rc" -o "obj\Application.o"
-gcc.exe -Oz -s -Wl,--gc-sections,--exclude-all-symbols -shared -municode -nostdlib -e DllMain "Library.c" "obj\Application.o" -lntdll -lkernel32 -luser32 -o "bin\gamelaunchhelper.dll"
+windres.exe -i "Resources\Library.rc" -o "obj\Library.o"
+gcc.exe -Oz -s -Wl,--gc-sections,--exclude-all-symbols -shared -municode -nostdlib -e DllMain -DINITGUID "Library.c" "obj\Library.o" -lntdll -lkernel32 -luser32 -o "bin\gamelaunchhelper.dll"
