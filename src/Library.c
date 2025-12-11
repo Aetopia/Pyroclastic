@@ -54,7 +54,6 @@ DWORD ThreadProc(PVOID pParameter)
 
         CloseHandle(hProcess);
     }
-
 _:
     return TerminateProcess(GetCurrentProcess(), EXIT_SUCCESS);
 }
