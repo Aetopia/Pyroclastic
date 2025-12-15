@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <appmodel.h>
 #include <winternl.h>
+#include <tlhelp32.h>
 
 __declspec(dllexport) VOID GameLaunch(VOID)
 {
@@ -10,34 +11,41 @@ __declspec(dllexport) VOID GameLaunch(VOID)
 
 DWORD ThreadProc(PVOID pParameter)
 {
-    WCHAR szCurrentPackageFamilyName[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1] = {};
-    if (GetCurrentPackageFamilyName(&(UINT){ARRAYSIZE(szCurrentPackageFamilyName)}, szCurrentPackageFamilyName))
+    WCHAR szCurrent[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1] = {};
+    if (GetCurrentPackageFamilyName(&(UINT){ARRAYSIZE(szCurrent)}, szCurrent))
         goto _;
 
-    WCHAR szPathName[MAX_PATH] = {};
-    if (GetCurrentPackagePath(&(UINT){ARRAYSIZE(szPathName)}, szPathName) || !SetCurrentDirectoryW(szPathName))
+    WCHAR szPath[MAX_PATH] = {};
+    if (GetCurrentPackagePath(&(UINT){ARRAYSIZE(szPath)}, szPath) || !SetCurrentDirectoryW(szPath))
         goto _;
 
-    HANDLE hMutex = CreateMutexW(NULL, FALSE, szCurrentPackageFamilyName);
+    PROCESSENTRY32W _ = {.dwSize = sizeof _};
+    HANDLE hProcess = {}, hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
-    if (hMutex && !GetLastError())
+    if (Process32NextW(hSnapshot, &_))
+        do
+            if (CompareStringOrdinal(L"Minecraft.Windows.exe", -1, _.szExeFile, -1, TRUE) == CSTR_EQUAL)
+            {
+                hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, _.th32ProcessID);
+                break;
+            }
+        while (Process32NextW(hSnapshot, &_));
+
+    if (WaitForInputIdle(hProcess, INFINITE))
     {
         PRTL_USER_PROCESS_PARAMETERS pParameters = NtCurrentTeb()->ProcessEnvironmentBlock->ProcessParameters;
         PWSTR pCommandLine = pParameters->CommandLine.Buffer + lstrlenW(pParameters->ImagePathName.Buffer) + 2;
 
         PROCESS_INFORMATION _ = {};
         CreateProcessW(L"Minecraft.Windows.exe", pCommandLine, NULL, NULL, FALSE, 0, 0, NULL, &(STARTUPINFOW){}, &_);
-        CloseHandle(_.hThread);
-
-        HANDLE hObject = {};
-        DuplicateHandle(GetCurrentProcess(), hMutex, _.hProcess, &hObject, 0, FALSE, DUPLICATE_SAME_ACCESS);
-        CloseHandle(hObject);
-
         WaitForInputIdle(_.hProcess, INFINITE);
+
+        CloseHandle(_.hThread);
         CloseHandle(_.hProcess);
     }
 
-    CloseHandle(hMutex);
+    CloseHandle(hProcess);
+    CloseHandle(hSnapshot);
 
     HWND hWnd = {};
     while ((hWnd = FindWindowExW(NULL, hWnd, L"Bedrock", NULL)))
@@ -45,11 +53,11 @@ DWORD ThreadProc(PVOID pParameter)
         DWORD dwProcessId = {};
         GetWindowThreadProcessId(hWnd, &dwProcessId);
 
-        WCHAR szPackageFamilyName[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1] = {};
+        WCHAR szProcess[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1] = {};
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, dwProcessId);
 
-        if (!GetPackageFamilyName(hProcess, &(UINT32){ARRAYSIZE(szPackageFamilyName)}, szPackageFamilyName) &&
-            CompareStringOrdinal(szCurrentPackageFamilyName, -1, szPackageFamilyName, -1, TRUE) == CSTR_EQUAL)
+        if (!GetPackageFamilyName(hProcess, &(UINT32){ARRAYSIZE(szProcess)}, szProcess) &&
+            CompareStringOrdinal(szCurrent, -1, szProcess, -1, TRUE) == CSTR_EQUAL)
             SwitchToThisWindow(hWnd, TRUE);
 
         CloseHandle(hProcess);
