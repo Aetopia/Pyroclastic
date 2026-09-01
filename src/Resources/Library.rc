@@ -1,20 +1,20 @@
-#include <windows.h>
+#include <winver.h>
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 1, 1, 1, 0
-BEGIN
-BLOCK "StringFileInfo"
-BEGIN
-BLOCK "040904b0"
-BEGIN
-VALUE "CompanyName", "Aetopia"
-VALUE "FileDescription", "Pyroclastic"
-VALUE "ProductName", "Pyroclastic"
-VALUE "ProductVersion",	"1.1.1.0"
-VALUE "LegalCopyright", "Copyright (C) 2025 Aetopia"
-END
-END
-BLOCK "VarFileInfo"
-BEGIN
-VALUE "Translation", 0x0, 1252
-END
-END
+FILEVERSION 1, 1, 1, 1
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "000004B0"
+        {
+            VALUE "CompanyName", "Aetopia"
+            VALUE "ProductVersion",	"1.1.1.1"
+            VALUE "ProductName", "Pyroclastic"
+            VALUE "FileDescription", "Pyroclastic"
+            VALUE "LegalCopyright", "https://github.com/Aetopia/Pyroclastic"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0, 1200
+    }
+}
